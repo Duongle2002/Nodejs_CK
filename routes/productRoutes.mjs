@@ -1,10 +1,13 @@
 import express from 'express';
 import { getProductDetail, getProductPage } from '../controllers/productController.mjs';
 import Product from '../models/product.mjs';
+import { isAuthenticated } from "../middlewares/auth.mjs";
 
 const router = express.Router();
 
-router.get('/product', getProductPage);
+router.get('/product', (req, res) => {
+  getProductPage(req, res, { user: req.session.user });
+});
 
 router.get('/', async (req, res) => {
   try {
@@ -23,8 +26,9 @@ router.get('/admin/api/products', async (req, res) => {
   }
 });
 
-router.get('/single_product/:id', getProductDetail);
-
+router.get('/single_product/:id', (req, res) => {
+  getProductDetail(req, res, { user: req.session.user });
+});
 
 router.post('/add', async (req, res) => {
   try {

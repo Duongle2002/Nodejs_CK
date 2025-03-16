@@ -4,7 +4,7 @@
     <div class="container">
         <div class="row no-gutters slider-text align-items-end justify-content-center">
             <div class="col-md-9 ftco-animate mb-5 text-center">
-                <p class="breadcrumbs mb-0"><span class="mr-2"><a href="index.html">Home <i class="fa fa-chevron-right"></i></a></span> <span>Cart <i class="fa fa-chevron-right"></i></span></p>
+                <p class="breadcrumbs mb-0"><span class="mr-2"><a href="/">Home <i class="fa fa-chevron-right"></i></a></span> <span>Cart <i class="fa fa-chevron-right"></i></span></p>
                 <h2 class="mb-0 bread">My Cart</h2>
             </div>
         </div>
@@ -60,7 +60,7 @@
                                         </div>
                                     </td>
                                     <td class="total-price">
-                                        $<%= item.total.toFixed(2) %>
+                                        $<%= (item.productId.price * item.quantity).toFixed(2) %>
                                     </td>
                                     <td>
                                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -86,25 +86,55 @@
                     <tfoot>
                         <tr>
                             <td colspan="5" class="text-right">Subtotal:</td>
-                            <td class="total-price" id="subtotal">$<%= subtotal %></td>
+                            <td class="total-price" id="subtotal">$<%= cart.items.reduce((total, item) => total + item.productId.price * item.quantity, 0).toFixed(2) %></td>
                             <td> </td>
                         </tr>
                         <tr>
                             <td colspan="5" class="text-right">Total:</td>
-                            <td class="total-price" id="total">$<%= subtotal %></td>
+                            <td class="total-price" id="total">$<%= cart.items.reduce((total, item) => total + item.productId.price * item.quantity, 0).toFixed(2) %></td>
                             <td> </td>
                         </tr>
                     </tfoot>
                 </table>
                 <div class="text-right">
-                    <button class="btn-checkout bg-black">
-                        <a href="/checkout" style="color: white; font-weight:bold">Proceed to Checkout</a>
+                    <button class="btn-checkout bg-black" data-toggle="modal" data-target="#orderModal">
+                        Proceed to Checkout
                     </button>
                 </div>
             </div>
         </div>
     </div>
 </section>
+
+<!-- Modal -->
+<div class="modal fade" id="orderModal" tabindex="-1" role="dialog" aria-labelledby="orderModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="orderModalLabel">Xác nhận đơn hàng</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="orderForm">
+          <div class="form-group">
+            <label for="address">Địa chỉ</label>
+            <input type="text" class="form-control" id="address" name="address" value="<%= user.address %>" required>
+          </div>
+          <div class="form-group">
+            <label for="phone">Số điện thoại</label>
+            <input type="text" class="form-control" id="phone" name="phone" value="<%= user.phone %>" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+        <button type="button" class="btn btn-primary" id="placeOrderBtn">Đặt hàng</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- JavaScript -->
 <script src="js/jquery.min.js"></script>
@@ -184,6 +214,35 @@
                 },
             });
         });
+    });
+
+    document.getElementById('placeOrderBtn').addEventListener('click', () => {
+        const orderData = {
+            address: document.querySelector('input[name="address"]').value,
+            phone: document.querySelector('input[name="phone"]').value,
+        };
+
+        fetch('/place-order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderData),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message === 'Order placed successfully!') {
+                alert('Đơn hàng đã được đặt thành công!');
+                window.location.href = '/';
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            alert('Đã xảy ra lỗi khi đặt đơn hàng.');
+        });
+
+            
     });
 </script>
 

@@ -1,21 +1,13 @@
 import express from 'express';
-// import { checkOutPage, getCheckoutDetail, createCheckout, updatePaymentStatus } from '../controllers/checkOutController.mjs';
 import { checkOutPage } from '../controllers/checkOutController.mjs';
-
+import { isAuthenticated } from '../middlewares/auth.mjs';
 
 const router = express.Router();
 
 // Route for checkout page
-router.get('/checkout', checkOutPage);
-
-// // Route to get checkout details by ID
-// router.get('/:id', getCheckoutDetail);
-
-// // Route to create a new checkout order
-// router.post('/create', createCheckout);
-
-// // Route to update payment status of checkout order
-// router.put('/:id', updatePaymentStatus);
+router.get('/checkout', isAuthenticated, (req, res) => {
+  checkOutPage(req, res, { user: req.session.user });
+});
 
 // Route to delete checkout order
 router.delete('/:id', async (req, res) => {

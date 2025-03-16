@@ -23,8 +23,14 @@ const userScheme = new Schema({
     default: "User",
     enum: ["Admin", "User"],
   },
+  address: {
+    type: String,
+  },
+  phone: {
+    type: String,
+  },
 });
 
-const User = userDBConnection.model("user", userScheme); 
+const User = userDBConnection.model("user", userScheme);
 
 export default User;

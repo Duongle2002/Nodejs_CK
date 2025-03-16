@@ -2,7 +2,7 @@ import Checkout from "../models/checkout.mjs";
 
 // Show the checkout page
 export const checkOutPage = (req, res) => {
-  res.render('checkout');  // Render the checkout page
+  res.render('checkout', { user: req.session.user });
 };
 
 // // Get checkout details by ID

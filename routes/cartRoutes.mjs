@@ -1,150 +1,26 @@
-// import express from 'express';
-// import Cart from '../models/cart.mjs'; 
-// import Product from '../models/product.mjs'; 
-
-// const router = express.Router();
-
-
-// router.get('/cart', async (req, res) => {
-//   try {
-//     const userId = req.session.userId; 
-//     const cart = await Cart.findOne({ userId }).populate('items.productId');
-
-    
-//     let subtotal = 0;
-//     if (cart && cart.items) {
-//       cart.items.forEach(item => {
-//         subtotal += item.productId.price * item.quantity;
-//       });
-//     }
-
-//     res.render('cart', { cart, subtotal: subtotal.toFixed(2) });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send('Lỗi khi tải giỏ hàng');
-//   }
-// });
-
-// let cart = { items: [] };
-
-// router.post('/add-to-cart', async (req, res) => {
-//   try {
-//     const { productId, quantity } = req.body;
-//     if (!productId || !quantity) {
-//       return res.status(400).json({ message: 'Missing productId or quantity' });
-//     }
-
-//     const product = await Product.findById(productId);
-//     if (!product) {
-//       return res.status(404).json({ message: 'Product not found' });
-//     }
-
-//     let cart = await Cart.findOne();
-//     if (!cart) {
-//       cart = new Cart({
-//         items: [{ productId: product._id, quantity }],
-//       });
-//       await cart.save();
-//       return res.status(200).json({ message: 'Product added to cart successfully' });
-//     } else {
-//       const itemIndex = cart.items.findIndex(item => item.productId.toString() === productId);
-//       if (itemIndex >= 0) {
-//         cart.items[itemIndex].quantity += quantity;
-//       } else {
-//         cart.items.push({ productId: product._id, quantity });
-//       }
-//       await cart.save();
-//       return res.status(200).json({ message: 'Product added to cart successfully' });
-//     }
-//   } catch (error) {
-//     console.error('Error adding product to cart:', error);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
-
-// router.post('/remove-from-cart', async (req, res) => {
-//   const { productId } = req.body; 
-
-//   try {
-//     const userId = req.session.userId; 
-
-//     const cart = await Cart.findOneAndUpdate(
-//       { userId },
-//       { $pull: { items: { productId: productId } } }, 
-//       { new: true } 
-//     );
-
-//     if (!cart) {
-//       return res.status(404).send({ message: "Giỏ hàng không tồn tại." });
-//     }
-
-//     let subtotal = 0;
-//     cart.items.forEach(item => {
-//       subtotal += item.productId.price * item.quantity;
-//     });
-
-//     res.json({ message: 'Sản phẩm đã được xóa', subtotal: subtotal.toFixed(2) });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send({ message: 'Lỗi khi xóa sản phẩm khỏi giỏ hàng.' });
-//   }
-// });
-
 import express from 'express';
 import Cart from '../models/cart.mjs';
 import Product from '../models/product.mjs';
+import Order from '../models/order.mjs';
+import { isAuthenticated } from '../middlewares/auth.mjs';
 
 const router = express.Router();
 
 // Hàm tạo baseUrl dựa trên môi trường
 const getBaseUrl = (req) => {
-  // Kiểm tra nếu đang chạy trên Render.com (dùng https)
   if (process.env.NODE_ENV === 'production') {
     return 'https://' + req.get('host');
   }
-  // Nếu chạy trên localhost, dùng giao thức từ request
   return req.protocol + '://' + req.get('host');
 };
 
 // Lấy giỏ hàng (giao diện HTML)
-router.get('/cart', async (req, res) => {
+router.get('/cart', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.session.userId || 'guest';
-    console.log('UserId in /cart:', userId);
-
+    const userId = req.session.userId;
     const cart = await Cart.findOne({ userId }).populate('items.productId');
-    console.log('Cart found in /cart:', cart);
-
-    const baseUrl = getBaseUrl(req);
-    let subtotal = 0;
-    let cartItems = [];
-    if (cart && cart.items) {
-      cartItems = cart.items.map(item => {
-        if (!item.productId) {
-          console.warn('Product not found for item:', item);
-          return null;
-        }
-        const itemTotal = item.productId.price * item.quantity;
-        subtotal += itemTotal;
-        return {
-          productId: {
-            _id: item.productId._id,
-            name: item.productId.name,
-            price: item.productId.price,
-            image: item.productId.image.match(/^https?:\/\//) // Kiểm tra cả http và https
-                ? item.productId.image
-                : `${baseUrl}/images/${item.productId.image.split('/').pop()}`,
-            category: item.productId.category || 'N/A',
-          },
-          quantity: item.quantity,
-          total: itemTotal,
-        };
-      }).filter(item => item !== null);
-    }
-
-    res.render('cart', { cart: { items: cartItems }, subtotal: subtotal.toFixed(2) });
+    res.render('cart', { cart, user: req.user });
   } catch (error) {
-    console.error('Error in /cart route:', error);
     res.status(500).send('Lỗi khi tải giỏ hàng');
   }
 });
@@ -153,11 +29,7 @@ router.get('/cart', async (req, res) => {
 router.get('/api/cart', async (req, res) => {
   try {
     const userId = req.session.userId || 'guest';
-    console.log('Fetching cart for userId:', userId);
-
     const cart = await Cart.findOne({ userId }).populate('items.productId');
-    console.log('Cart found in /api/cart:', cart);
-
     if (!cart) {
       return res.status(200).json({ items: [], subtotal: 0 });
     }
@@ -166,7 +38,6 @@ router.get('/api/cart', async (req, res) => {
     let subtotal = 0;
     const cartItems = cart.items.map(item => {
       if (!item.productId) {
-        console.warn('Product not found for item:', item);
         return null;
       }
       const itemTotal = item.productId.price * item.quantity;
@@ -176,9 +47,9 @@ router.get('/api/cart', async (req, res) => {
         name: item.productId.name,
         price: item.productId.price,
         quantity: item.quantity,
-        image: item.productId.image.match(/^https?:\/\//) // Kiểm tra cả http và https
-            ? item.productId.image
-            : `${baseUrl}/images/${item.productId.image.split('/').pop()}`,
+        image: item.productId.image.match(/^https?:\/\//)
+          ? item.productId.image
+          : `${baseUrl}/images/${item.productId.image.split('/').pop()}`,
         total: itemTotal,
       };
     }).filter(item => item !== null);
@@ -188,20 +59,16 @@ router.get('/api/cart', async (req, res) => {
       subtotal: subtotal.toFixed(2),
     });
   } catch (error) {
-    console.error('Error in /api/cart route:', error);
     res.status(500).json({ message: 'Error loading cart', error: error.message });
   }
 });
 
 // Thêm vào giỏ hàng
-router.post('/add-to-cart', async (req, res) => {
+router.post('/add-to-cart/:productId', isAuthenticated, async (req, res) => {
   try {
-    const { productId, quantity } = req.body;
-    const userId = req.session.userId || 'guest';
-
-    if (!productId || !quantity) {
-      return res.status(400).json({ message: 'Missing productId or quantity' });
-    }
+    const { productId } = req.params;
+    const { quantity } = req.body;
+    const userId = req.session.userId;
 
     const product = await Product.findById(productId);
     if (!product) {
@@ -225,7 +92,6 @@ router.post('/add-to-cart', async (req, res) => {
     await cart.save();
     res.status(200).json({ message: 'Product added to cart successfully' });
   } catch (error) {
-    console.error('Error adding product to cart:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -260,6 +126,9 @@ router.post('/update-quantity', async (req, res) => {
           name: item.productId.name,
           price: item.productId.price,
           quantity: item.quantity,
+          image: item.productId.image.match(/^https?:\/\//)
+            ? item.productId.image
+            : `${baseUrl}/images/${item.productId.image.split('/').pop()}`,
           total: itemTotal,
         };
       });
@@ -273,7 +142,6 @@ router.post('/update-quantity', async (req, res) => {
       res.status(404).json({ message: 'Product not in cart' });
     }
   } catch (error) {
-    console.error('Error updating quantity:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -305,8 +173,8 @@ router.post('/remove-from-cart', async (req, res) => {
         price: item.productId.price,
         quantity: item.quantity,
         image: item.productId.image.match(/^https?:\/\//)
-            ? item.productId.image
-            : `${baseUrl}/images/${item.productId.image.split('/').pop()}`,
+          ? item.productId.image
+          : `${baseUrl}/images/${item.productId.image.split('/').pop()}`,
         total: itemTotal,
       };
     });
@@ -315,10 +183,40 @@ router.post('/remove-from-cart', async (req, res) => {
       message: 'Product removed from cart',
       items: cartItems,
       subtotal: subtotal.toFixed(2),
+      user: req.session.user
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Error removing product from cart' });
+  }
+});
+
+// Đặt hàng
+router.post('/place-order', isAuthenticated, async (req, res) => {
+  try {
+    const { address, phone } = req.body;
+    const userId = req.session.userId;
+
+    const cart = await Cart.findOne({ userId }).populate('items.productId');
+    if (!cart) {
+      return res.status(400).json({ message: 'Cart is empty' });
+    }
+
+    const totalPrice = cart.items.reduce((total, item) => total + item.productId.price * item.quantity, 0);
+
+    const order = new Order({
+      userId,
+      items: cart.items,
+      address,
+      phone,
+      totalPrice,
+    });
+
+    await order.save();
+    await Cart.deleteOne({ userId });
+
+    res.status(200).json({ message: 'Order placed successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

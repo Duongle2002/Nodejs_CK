@@ -2,16 +2,18 @@ import User from '../models/user.mjs';
 
 class HomeController {
   static index(req, res) {
-    console.log(req.query);
-    res.render('index', { title: 'Home Page', user: req.session.user });
+    const messages = req.flash('info');
+    res.render('index', { title: 'Home Page', user: req.session.user, messages });
   }
 
   static login(req, res) {
-    res.render('login', { title: 'Login', error: null });
+    const error = req.flash('error');
+    res.render('login', { title: 'Login', error });
   }
 
   static signup(req, res) {
-    res.render('signup', { title: 'Signup', error: null });
+    const error = req.flash('error');
+    res.render('signup', { title: 'Signup', error });
   }
 
   static async createSignup(req, res) {
@@ -19,16 +21,19 @@ class HomeController {
       const { name, email, password, confirmpasword, age } = req.body;
 
       if (!name || !email || !password || !confirmpasword) {
-        return res.render('signup', { title: 'Signup', error: 'All fields are required.' });
+        req.flash('error', 'All fields are required.');
+        return res.redirect('/signup');
       }
 
       if (password !== confirmpasword) {
-        return res.render('signup', { title: 'Signup', error: 'Passwords do not match.' });
+        req.flash('error', 'Passwords do not match.');
+        return res.redirect('/signup');
       }
 
       const existingUser = await User.findOne({ email });
       if (existingUser) {
-        return res.render('signup', { title: 'Signup', error: 'Email already in use.' });
+        req.flash('error', 'Email already in use.');
+        return res.redirect('/signup');
       }
 
       const newUser = new User({
@@ -39,10 +44,12 @@ class HomeController {
       });
 
       await newUser.save();
+      req.flash('info', 'User registered successfully.');
       res.redirect('/login');
     } catch (error) {
       console.error(error);
-      res.status(500).render('signup', { title: 'Signup', error: 'Server error. Please try again.' });
+      req.flash('error', 'Server error. Please try again.');
+      res.redirect('/signup');
     }
   }
 
@@ -51,24 +58,29 @@ class HomeController {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return res.render('login', { title: 'Login', error: 'Email and password are required.' });
+        req.flash('error', 'Email and password are required.');
+        return res.redirect('/login');
       }
 
       const user = await User.findOne({ email });
       if (!user) {
-        return res.render('login', { title: 'Login', error: 'Invalid email or password.' });
+        req.flash('error', 'Invalid email or password.');
+        return res.redirect('/login');
       }
 
       const isMatch = user.password === password;
       if (isMatch) {
         req.session.user = user;
+        req.flash('info', 'Login successful.');
         res.redirect('/');
       } else {
-        res.render('login', { title: 'Login', error: 'Invalid email or password.' });
+        req.flash('error', 'Invalid email or password.');
+        res.redirect('/login');
       }
     } catch (error) {
       console.error(error);
-      res.status(500).render('login', { title: 'Login', error: 'Server error. Please try again.' });
+      req.flash('error', 'Server error. Please try again.');
+      res.redirect('/login');
     }
   }
 
