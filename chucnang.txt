@@ -1,0 +1,36 @@
+Dưới đây là chức năng của các file trong dự án của bạn:
+
+1. aboutRoutes.mjs
+Chức năng: Định nghĩa route cho trang "About".
+
+2. user.mjs
+Chức năng: Định nghĩa các route liên quan đến người dùng (hiển thị danh sách người dùng, tạo mới, xóa).
+
+3. singleProductRoutes.mjs
+Chức năng: Định nghĩa route cho trang sản phẩm đơn lẻ.
+
+4. root.mjs
+Chức năng: Định nghĩa các route chính của ứng dụng (trang chủ, đăng nhập, đăng ký).
+
+5. productRoutes.mjs
+Chức năng: Định nghĩa các route liên quan đến sản phẩm (hiển thị danh sách sản phẩm, chi tiết sản phẩm, thêm sản phẩm mới).
+
+6. contactRoutes.mjs
+Chức năng: Định nghĩa các route liên quan đến trang liên hệ (hiển thị trang liên hệ, gửi tin nhắn).
+
+7. checkOutRoutes.mjs
+Chức năng: Định nghĩa các route liên quan đến thanh toán (hiển thị trang thanh toán, tạo đơn hàng thanh toán).
+
+8. cartRoutes.mjs
+Chức năng: Định nghĩa các route liên quan đến giỏ hàng (hiển thị giỏ hàng, thêm sản phẩm vào giỏ, cập nhật số lượng, xóa sản phẩm khỏi giỏ).
+
+9. blogRoutes.mjs
+Chức năng: Định nghĩa các route liên quan đến blog (hiển thị danh sách blog, chi tiết blog, thêm blog mới).
+
+10. api.mjs
+Chức năng: Định nghĩa các route API liên quan đến người dùng (đăng nhập, hiển thị danh sách người dùng, chi tiết người dùng, xóa người dùng).
+
+11. adminRoutes.mjs
+Chức năng: Định nghĩa các route quản lý admin (quản lý người dùng, sản phẩm).
+
+Với các middleware isAuthenticated và isAdmin, bạn có thể bảo vệ các route cần bảo mật và chỉ cho phép người dùng đã đăng nhập hoặc có quyền admin truy cập.
